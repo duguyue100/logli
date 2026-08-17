@@ -179,6 +179,22 @@ a:hover { text-decoration: underline; }
 .card-body hr { border: none; border-top: 1px solid #e5e5e5; margin: 1.25rem 0; }
 .card-body .katex-display { margin: 0.75rem 0; }
 
+/* Use bundled Computer Modern faces instead of KaTeX's Times-based defaults
+   so math matches a LaTeX paper. Styles that have no CMU equivalent
+   (blackboard, calligraphic, fraktur, script, sans, typewriter, stretchy
+   delimiters) intentionally keep the KaTeX fonts. */
+.katex {
+  font-family: 'Computer Modern Serif', 'FangSong', serif;
+}
+.katex .mainrm,
+.katex .textrm,
+.katex .mathit,
+.katex .mathbf,
+.katex .mathnormal,
+.katex .boldsymbol {
+  font-family: 'Computer Modern Serif', 'FangSong', serif;
+}
+
 /* Search state */
 .card.hidden { display: none; }
 
