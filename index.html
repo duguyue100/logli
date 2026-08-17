@@ -1,0 +1,19 @@
+---
+layout: default
+---
+
+<section id="feed">
+{% for post in site.posts %}
+  <article class="card" id="p{{ forloop.index }}">
+    <div class="card-meta">
+      <a class="card-date" href="#p{{ forloop.index }}" title="Permalink">{{ post.date | date: "%Y-%m-%d" }}</a>
+      <button class="share" type="button" data-index="{{ forloop.index }}">Share</button>
+    </div>
+    <div class="card-body">
+      {{ post.content }}
+    </div>
+  </article>
+{% endfor %}
+</section>
+
+<p id="no-results" class="no-results" hidden>No posts match your search.</p>

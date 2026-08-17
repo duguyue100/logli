@@ -1,0 +1,22 @@
+title: Logli
+description: My personal microblog.
+author: duguyue100
+
+# Project page served at https://duguyue100.github.io/logli/
+baseurl: /logli
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Post dates come from the CI script (first git commit date of each file).
+# Keep this in sync with TZ in .github/workflows/deploy.yml so card dates
+# match your local calendar.
+timezone: Europe/Zurich
+
+exclude:
+  - res
+  - scripts
+  - .github
+  - README.md

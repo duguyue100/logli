@@ -1,0 +1,17 @@
+# Jekyll build artifacts
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Bundler (if you ever install gems locally)
+.bundle/
+vendor/bundle/
+*.gem
+
+# macOS
+.DS_Store
+
+# Editor swap/backups
+*.swp
+*~
