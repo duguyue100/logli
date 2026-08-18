@@ -5,52 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Logli Editor</title>
 <style>
+  :root { --border:#e8e8e8; --accent:#1a4f8b; --muted:#666; }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f6f6; color: #222; }
-  header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
-  header h1 { font-size: 18px; margin: 0; margin-right: auto; }
-  button { font: inherit; padding: 6px 12px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
-  button:hover { background: #f0f0f0; }
-  button.primary { background: #1a73e8; border-color: #1a73e8; color: #fff; }
-  button.primary:hover { background: #1765cc; }
+  body {
+    margin: 0; background: #fff; color: #222;
+    font-family: Georgia, 'FangSong', 'STFangsong', serif;
+    font-size: 17px; line-height: 1.65;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 0.75rem 1.25rem;
+    background: #fff; border-bottom: 1px solid var(--border);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header h1 { font-size: 1.35rem; margin: 0; margin-right: auto; font-weight: bold; color: #111; }
+  .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: inherit; padding: 7px 14px; border: 1px solid #ccc;
+    border-radius: 6px; background: #fff; color: #222; cursor: pointer;
+  }
+  button:hover { background: #f4f4f4; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #16406f; }
   button.danger { color: #c00; }
-  #status { font-size: 13px; color: #555; text-align: right; }
+  #status { font-size: 13px; color: var(--muted); font-family: system-ui, sans-serif; }
   #status.error { color: #c00; }
-  .layout { display: flex; height: calc(100vh - 50px); }
-  aside { width: 260px; border-right: 1px solid #ddd; background: #fff; overflow-y: auto; flex-shrink: 0; }
+  .layout { display: flex; min-height: calc(100vh - 60px); }
+  aside {
+    width: 280px; border-right: 1px solid var(--border);
+    overflow-y: auto; max-height: calc(100vh - 60px); position: sticky; top: 60px;
+  }
   aside ul { list-style: none; margin: 0; padding: 0; }
-  aside li a { display: block; padding: 8px 12px; color: #222; text-decoration: none; border-bottom: 1px solid #f0f0f0; font-size: 13px; word-break: break-all; }
-  aside li a.active, aside li a:hover { background: #eef4ff; }
-  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .toolbar { display: none; padding: 8px 12px; background: #fff; border-bottom: 1px solid #ddd; }
+  aside li a {
+    display: block; padding: 8px 14px; color: #222; text-decoration: none;
+    border-bottom: 1px solid #f2f2f2; font-size: 13px; word-break: break-all;
+    font-family: system-ui, sans-serif;
+  }
+  aside li a:hover { background: #f4f6fa; }
+  aside li a.active { background: #e8eef7; border-left: 3px solid var(--accent); }
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .toolbar { display: none; padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: system-ui, sans-serif; }
   .toolbar select { width: 100%; font: inherit; padding: 6px; }
-  textarea { flex: 1; border: none; resize: none; padding: 14px; font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; outline: none; }
+  .view { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.5rem 1.75rem 3rem; }
+  .post-name { color: var(--muted); font-size: 0.8rem; font-family: system-ui, sans-serif; margin: 0 0 0.5rem; }
+  .article h1, .article h2, .article h3, .article h4 { line-height: 1.3; margin: 1.5em 0 0.6em; }
+  .article p, .article ul, .article ol, .article blockquote, .article pre, .article table { margin: 0 0 1em; }
+  .article ul, .article ol { padding-left: 1.6em; }
+  .article blockquote { margin-left: 0; padding-left: 1em; border-left: 3px solid #ddd; color: #444; }
+  .article code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.9em; }
+  .article pre { background: #f6f6f6; padding: 0.9em 1.1em; border-radius: 6px; overflow-x: auto; }
+  .article pre code { background: none; padding: 0; }
+  .article a { color: var(--accent); }
+  .article img { max-width: 100%; }
+  .article hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  textarea {
+    flex: 1; border: none; resize: none; padding: 1.25rem 1.75rem;
+    font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; outline: none;
+    max-width: 860px; width: 100%; margin: 0 auto;
+  }
+  .empty { color: var(--muted); text-align: center; padding-top: 20vh; font-family: system-ui, sans-serif; }
   @media (max-width: 640px) {
     aside { display: none; }
     .toolbar { display: block; }
+    .view { padding: 1rem 1.1rem 2.5rem; }
+    textarea { padding: 1rem 1.1rem; }
   }
 </style>
 </head>
 <body>
 <header>
   <h1>Logli Editor</h1>
-  <button class="primary" id="new">New</button>
-  <button id="save">Save</button>
-  <button class="danger" id="del">Delete</button>
-  <span id="status"></span>
+  <div class="actions">
+    <button id="new" class="primary">New</button>
+    <button id="edit" hidden>Edit</button>
+    <button id="save" class="primary" hidden>Save</button>
+    <button id="del" class="danger" hidden>Delete</button>
+    <span id="status"></span>
+  </div>
 </header>
 <div class="layout">
-  <aside id="posts"></aside>
+  <aside><ul id="posts"></ul></aside>
   <main>
     <div class="toolbar">
-      <select id="pick" aria-label="Choose post"><option value="">-- new post --</option></select>
+      <select id="pick" aria-label="Choose post"><option value="">-- choose post --</option></select>
     </div>
-    <textarea id="content" placeholder="Write your post in Markdown…"></textarea>
+    <div id="view" class="view"></div>
+    <textarea id="content" placeholder="Write your post in Markdown…" hidden></textarea>
   </main>
 </div>
+<script src="markdown-it.min.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
+const md = window.markdownit({ html: false, linkify: true });
 let current = null;
+let raw = "";
+let mode = "read";
+let dirty = false;
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
@@ -65,29 +116,72 @@ function status(msg, isErr = false) {
   el.className = isErr ? "error" : "";
 }
 
+function setMode(m) {
+  mode = m;
+  const editing = m === "edit";
+  $("#view").hidden = editing;
+  $("#content").hidden = !editing;
+  $("#edit").hidden = editing || !current;
+  $("#save").hidden = !editing;
+  $("#del").hidden = !current;
+  if (editing) $("#content").focus();
+}
+
+function renderRead(name, content) {
+  $("#view").innerHTML =
+    `<p class="post-name">${name}</p>` +
+    `<article class="article">${md.render(content)}</article>`;
+}
+
+function showEmpty() {
+  $("#view").innerHTML = `<div class="empty">Select a post, or click <strong>New</strong> to write one.</div>`;
+}
+
 async function refresh() {
   const { posts } = await api("/api/posts");
   $("#posts").innerHTML = posts.map((p) =>
     `<li><a href="#" data-name="${p}" class="${p === current ? "active" : ""}">${p}</a></li>`
   ).join("");
   $("#pick").innerHTML =
-    '<option value="">-- new post --</option>' +
+    '<option value="">-- choose post --</option>' +
     posts.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${p}</option>`).join("");
 }
 
-function maybeDiscard() {
-  return !current || !$("#content").value.trim() || confirm("Discard unsaved edits?");
+function canLeave() {
+  return !(mode === "edit" && dirty) || confirm("Discard unsaved edits?");
 }
 
 async function open(name) {
-  if (!maybeDiscard()) return;
+  if (!canLeave()) return;
   try {
     const { content } = await api("/api/posts/" + encodeURIComponent(name));
     current = name;
-    $("#content").value = content;
-    status("Editing " + name);
+    raw = content;
+    dirty = false;
+    setMode("read");
+    renderRead(name, content);
+    status(name);
     refresh();
   } catch (e) { status(e.message, true); }
+}
+
+function edit() {
+  if (!current || !canLeave()) return;
+  dirty = false;
+  $("#content").value = raw;
+  setMode("edit");
+  status("Editing " + current);
+}
+
+function newPost() {
+  if (!canLeave()) return;
+  current = null;
+  raw = "";
+  dirty = false;
+  $("#content").value = "";
+  setMode("edit");
+  status("New post");
+  refresh();
 }
 
 async function save() {
@@ -99,6 +193,10 @@ async function save() {
       ? await api("/api/posts/" + encodeURIComponent(current), { method: "PUT", body: JSON.stringify({ content }) })
       : await api("/api/posts", { method: "POST", body: JSON.stringify({ content }) });
     current = data.name;
+    raw = content;
+    dirty = false;
+    setMode("read");
+    renderRead(current, content);
     status("Pushed \u2713 " + current);
     await refresh();
   } catch (e) { status(e.message, true); }
@@ -111,18 +209,13 @@ async function remove() {
   try {
     await api("/api/posts/" + encodeURIComponent(current), { method: "DELETE" });
     current = null;
-    $("#content").value = "";
+    raw = "";
+    dirty = false;
+    setMode("read");
+    showEmpty();
     status("Deleted \u2713");
     await refresh();
   } catch (e) { status(e.message, true); }
-}
-
-function newPost() {
-  if (!maybeDiscard()) return;
-  current = null;
-  $("#content").value = "";
-  status("New post");
-  refresh();
 }
 
 $("#posts").addEventListener("click", (e) => {
@@ -130,9 +223,13 @@ $("#posts").addEventListener("click", (e) => {
   if (a) { e.preventDefault(); open(a.dataset.name); }
 });
 $("#pick").addEventListener("change", (e) => { if (e.target.value) open(e.target.value); });
+$("#content").addEventListener("input", () => { dirty = true; });
 $("#new").addEventListener("click", newPost);
+$("#edit").addEventListener("click", edit);
 $("#save").addEventListener("click", save);
 $("#del").addEventListener("click", remove);
+setMode("read");
+showEmpty();
 refresh().catch((e) => status(e.message, true));
 </script>
 </body>

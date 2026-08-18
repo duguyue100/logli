@@ -6,6 +6,7 @@ Every write (create/edit/delete) does: fetch+reset origin/main, mutate a
 post in _posts/, commit, push. GitHub Actions then rebuilds the site.
 """
 import json
+import mimetypes
 import os
 import re
 import subprocess
@@ -131,6 +132,18 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_static(self, name):
+        p = os.path.join(HERE, name)
+        if not re.fullmatch(r"[\w.-]+", name) or not os.path.isfile(p):
+            return self._send_json({"error": "not found"}, 404)
+        with open(p, "rb") as f:
+            body = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", mimetypes.guess_type(name)[0] or "application/octet-stream")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def _read_body(self):
         n = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(n)
@@ -160,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
             except GitError as e:
                 self._send_json({"error": str(e)}, 404)
         else:
-            self._send_json({"error": "not found"}, 404)
+            self._send_static(u.path.lstrip("/"))
 
     def do_POST(self):
         u = urlsplit(self.path)
