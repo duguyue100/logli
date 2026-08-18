@@ -36,7 +36,7 @@
   sortBtn.addEventListener('click', function () {
     reversed = !reversed;
     var cards = Array.prototype.slice.call(feed.querySelectorAll('.card'));
-    if (reversed) cards.reverse();
+    cards.reverse();
     cards.forEach(function (c) { feed.appendChild(c); });
     sortBtn.classList.toggle('reversed', reversed);
     sortBtn.setAttribute('aria-pressed', reversed ? 'true' : 'false');
