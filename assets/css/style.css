@@ -104,6 +104,7 @@ a:hover { text-decoration: underline; }
   line-height: 1;
 }
 #sort svg { display: block; }
+#sort .sort-asc { display: none; }
 #sort.reversed .sort-desc { display: none; }
 #sort.reversed .sort-asc { display: block; }
 #sort:hover { background: #f5f5f5; }
@@ -159,6 +160,7 @@ a:hover { text-decoration: underline; }
   line-height: 1;
 }
 .share svg { display: block; }
+.share .check-icon { display: none; }
 .share.copied .share-icon { display: none; }
 .share.copied .check-icon { display: block; color: #2e7d32; }
 .share:hover { background: #f5f5f5; }
