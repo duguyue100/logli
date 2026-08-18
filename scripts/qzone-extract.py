@@ -50,7 +50,15 @@ def main(argv):
                 f"date: {dt:%Y-%m-%d %H:%M:%S} +0800\n"
                 "---\n\n"
             )
-            out.write_text(frontmatter + text + "\n", encoding="utf-8")
+            # The source is a <pre>: preserve its line breaks in markdown by
+            # using GFM hard breaks (two trailing spaces) on every line but
+            # the last, so kramdown renders them as <br> instead of one line.
+            lines = text.split("\n")
+            body = "\n".join(
+                line + "  " if i < len(lines) - 1 and line else line
+                for i, line in enumerate(lines)
+            )
+            out.write_text(frontmatter + body + "\n", encoding="utf-8")
             written.append(name)
     for name in written:
         print(f"wrote {name}")
