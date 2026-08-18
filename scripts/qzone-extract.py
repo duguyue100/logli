@@ -32,7 +32,12 @@ def iter_posts(page: str):
 
 
 def parse_time(s: str) -> datetime:
-    return datetime.strptime(s, "%Y年%m月%d日 %H:%M")
+    for fmt in ("%Y年%m月%d日 %H:%M", "%Y年%m月%d日"):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"unparseable time: {s!r}")
 
 
 def main(argv):
