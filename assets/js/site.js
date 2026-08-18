@@ -5,23 +5,30 @@
   var search = document.getElementById('search');
   var sortBtn = document.getElementById('sort');
   var noResults = document.getElementById('no-results');
+  var pag = document.getElementById('pagination');
+  var loadMore = document.getElementById('load-more');
+  var loadAll = document.getElementById('load-all');
+  var totalPages = parseInt(pag.getAttribute('data-total'), 10) || 1;
+  var base = pag.getAttribute('data-base') || '';
+  var currentPage = 1;
   var reversed = false;
 
-  // KaTeX
-  if (window.renderMathInElement) {
-    renderMathInElement(document.body, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '\\[', right: '\\]', display: true },
-        { left: '\\(', right: '\\)', display: false },
-        { left: '$', right: '$', display: false }
-      ],
-      throwOnError: false
-    });
+  var katexOptions = {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '\\[', right: '\\]', display: true },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '$', right: '$', display: false }
+    ],
+    throwOnError: false
+  };
+
+  function renderMath(root) {
+    if (window.renderMathInElement) renderMathInElement(root, katexOptions);
   }
 
   // Live search: filter rendered cards by text match.
-  search.addEventListener('input', function () {
+  function applyFilter() {
     var q = search.value.trim().toLowerCase();
     var visible = 0;
     feed.querySelectorAll('.card').forEach(function (card) {
@@ -30,6 +37,46 @@
       if (hit) visible++;
     });
     noResults.hidden = visible !== 0;
+  }
+
+  function updateButtons() {
+    var done = currentPage >= totalPages;
+    loadMore.hidden = done;
+    loadAll.hidden = done;
+  }
+
+  // Fetch page N and append its cards; resolves when appended.
+  function loadPage(n) {
+    return fetch(base + '/page' + n + '/').then(function (r) {
+      return r.text();
+    }).then(function (html) {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var frag = document.createElement('div');
+      doc.querySelectorAll('#feed .card').forEach(function (c) { frag.appendChild(c); });
+      renderMath(frag);
+      while (frag.firstChild) feed.appendChild(frag.firstChild);
+      applyFilter();
+      currentPage = n;
+      updateButtons();
+    });
+  }
+
+  function loadAllPages() {
+    var n = currentPage;
+    (function next() {
+      n++;
+      if (n > totalPages) return;
+      loadPage(n).then(next);
+    })();
+  }
+
+  // KaTeX on the initially rendered cards.
+  renderMath(document.body);
+
+  // Search: if the query could match unloaded posts, load them all first.
+  search.addEventListener('input', function () {
+    if (search.value.trim() && currentPage < totalPages) loadAllPages();
+    applyFilter();
   });
 
   // Sort: toggle between newest-first (default) and oldest-first.
@@ -43,6 +90,11 @@
     sortBtn.title = reversed ? 'Sort: newest first' : 'Sort: oldest first';
     sortBtn.setAttribute('aria-label', sortBtn.title);
   });
+
+  loadMore.addEventListener('click', function () {
+    if (currentPage < totalPages) loadPage(currentPage + 1);
+  });
+  loadAll.addEventListener('click', loadAllPages);
 
   // Share: copy a self-contained HTML snippet for the card.
   feed.addEventListener('click', function (e) {

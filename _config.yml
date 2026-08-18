@@ -5,6 +5,12 @@ author: duguyue100
 # Project page served at https://duguyue100.github.io/logli/
 baseurl: /logli
 
+paginate: 50
+paginate_path: "/page:num/"
+
+plugins:
+  - jekyll-paginate
+
 markdown: kramdown
 kramdown:
   input: GFM
