@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logli Editor</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f6f6; color: #222; }
+  header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; margin-right: auto; }
+  button { font: inherit; padding: 6px 12px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button.primary { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+  button.primary:hover { background: #1765cc; }
+  button.danger { color: #c00; }
+  #status { font-size: 13px; color: #555; text-align: right; }
+  #status.error { color: #c00; }
+  .layout { display: flex; height: calc(100vh - 50px); }
+  aside { width: 260px; border-right: 1px solid #ddd; background: #fff; overflow-y: auto; flex-shrink: 0; }
+  aside ul { list-style: none; margin: 0; padding: 0; }
+  aside li a { display: block; padding: 8px 12px; color: #222; text-decoration: none; border-bottom: 1px solid #f0f0f0; font-size: 13px; word-break: break-all; }
+  aside li a.active, aside li a:hover { background: #eef4ff; }
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .toolbar { display: none; padding: 8px 12px; background: #fff; border-bottom: 1px solid #ddd; }
+  .toolbar select { width: 100%; font: inherit; padding: 6px; }
+  textarea { flex: 1; border: none; resize: none; padding: 14px; font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; outline: none; }
+  @media (max-width: 640px) {
+    aside { display: none; }
+    .toolbar { display: block; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Logli Editor</h1>
+  <button class="primary" id="new">New</button>
+  <button id="save">Save</button>
+  <button class="danger" id="del">Delete</button>
+  <span id="status"></span>
+</header>
+<div class="layout">
+  <aside id="posts"></aside>
+  <main>
+    <div class="toolbar">
+      <select id="pick" aria-label="Choose post"><option value="">-- new post --</option></select>
+    </div>
+    <textarea id="content" placeholder="Write your post in Markdown…"></textarea>
+  </main>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+let current = null;
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.status);
+  return data;
+}
+
+function status(msg, isErr = false) {
+  const el = $("#status");
+  el.textContent = msg;
+  el.className = isErr ? "error" : "";
+}
+
+async function refresh() {
+  const { posts } = await api("/api/posts");
+  $("#posts").innerHTML = posts.map((p) =>
+    `<li><a href="#" data-name="${p}" class="${p === current ? "active" : ""}">${p}</a></li>`
+  ).join("");
+  $("#pick").innerHTML =
+    '<option value="">-- new post --</option>' +
+    posts.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${p}</option>`).join("");
+}
+
+function maybeDiscard() {
+  return !current || !$("#content").value.trim() || confirm("Discard unsaved edits?");
+}
+
+async function open(name) {
+  if (!maybeDiscard()) return;
+  try {
+    const { content } = await api("/api/posts/" + encodeURIComponent(name));
+    current = name;
+    $("#content").value = content;
+    status("Editing " + name);
+    refresh();
+  } catch (e) { status(e.message, true); }
+}
+
+async function save() {
+  const content = $("#content").value;
+  if (!content.trim()) { status("Post is empty", true); return; }
+  status("Pushing…");
+  try {
+    const data = current
+      ? await api("/api/posts/" + encodeURIComponent(current), { method: "PUT", body: JSON.stringify({ content }) })
+      : await api("/api/posts", { method: "POST", body: JSON.stringify({ content }) });
+    current = data.name;
+    status("Pushed \u2713 " + current);
+    await refresh();
+  } catch (e) { status(e.message, true); }
+}
+
+async function remove() {
+  if (!current) return;
+  if (!confirm("Delete " + current + "?")) return;
+  status("Deleting…");
+  try {
+    await api("/api/posts/" + encodeURIComponent(current), { method: "DELETE" });
+    current = null;
+    $("#content").value = "";
+    status("Deleted \u2713");
+    await refresh();
+  } catch (e) { status(e.message, true); }
+}
+
+function newPost() {
+  if (!maybeDiscard()) return;
+  current = null;
+  $("#content").value = "";
+  status("New post");
+  refresh();
+}
+
+$("#posts").addEventListener("click", (e) => {
+  const a = e.target.closest("a");
+  if (a) { e.preventDefault(); open(a.dataset.name); }
+});
+$("#pick").addEventListener("change", (e) => { if (e.target.value) open(e.target.value); });
+$("#new").addEventListener("click", newPost);
+$("#save").addEventListener("click", save);
+$("#del").addEventListener("click", remove);
+refresh().catch((e) => status(e.message, true));
+</script>
+</body>
+</html>

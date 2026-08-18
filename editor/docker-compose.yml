@@ -1,0 +1,17 @@
+services:
+  editor:
+    build: .
+    container_name: logli-editor
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/repo
+      - ~/.ssh:/root/.ssh:ro
+    environment:
+      - PORT=8000
+      - REPO_DIR=/repo
+      - GIT_NAME=duguyue100
+      - GIT_EMAIL=duguyue100@users.noreply.github.com
+      - EDITOR_UID=${EDITOR_UID:-501}
+      - EDITOR_GID=${EDITOR_GID:-20}
+    restart: unless-stopped

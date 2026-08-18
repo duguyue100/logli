@@ -25,4 +25,5 @@ exclude:
   - res
   - scripts
   - .github
+  - editor
   - README.md
