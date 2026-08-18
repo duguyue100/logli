@@ -26,6 +26,8 @@ def iter_posts(page: str):
         if not tid or not pre or not time_link:
             continue
         text = html.unescape(re.sub(r'<br\s*/?>', '\n', pre.group(1))).strip()
+        if not text:
+            continue  # image-only posts have an empty <pre>
         yield tid.group(1), time_link.group(1), text
 
 
