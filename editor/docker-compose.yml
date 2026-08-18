@@ -3,7 +3,7 @@ services:
     build: .
     container_name: logli-editor
     ports:
-      - "8000:8000"
+      - "6006:8000"
     volumes:
       - ..:/repo
       - ~/.ssh:/root/.ssh:ro
