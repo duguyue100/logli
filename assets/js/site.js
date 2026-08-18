@@ -32,13 +32,16 @@
     noResults.hidden = visible !== 0;
   });
 
-  // Sort: newest-first (default) <-> oldest-first.
+  // Sort: toggle between newest-first (default) and oldest-first.
   sortBtn.addEventListener('click', function () {
     reversed = !reversed;
     var cards = Array.prototype.slice.call(feed.querySelectorAll('.card'));
     if (reversed) cards.reverse();
     cards.forEach(function (c) { feed.appendChild(c); });
-    sortBtn.textContent = reversed ? 'Oldest first' : 'Newest first';
+    sortBtn.classList.toggle('reversed', reversed);
+    sortBtn.setAttribute('aria-pressed', reversed ? 'true' : 'false');
+    sortBtn.title = reversed ? 'Sort: newest first' : 'Sort: oldest first';
+    sortBtn.setAttribute('aria-label', sortBtn.title);
   });
 
   // Share: copy a self-contained HTML snippet for the card.
@@ -58,8 +61,12 @@
       'CC BY 4.0 · <a href="https://creativecommons.org/licenses/by/4.0/">license</a></div>' +
       '</div>';
     copyText(snippet).then(function () {
-      btn.textContent = 'Copied!';
-      setTimeout(function () { btn.textContent = 'Share'; }, 1500);
+      btn.classList.add('copied');
+      btn.title = 'Copied!';
+      setTimeout(function () {
+        btn.classList.remove('copied');
+        btn.title = 'Share';
+      }, 1500);
     });
   });
 
