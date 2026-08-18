@@ -104,7 +104,7 @@ a:hover { text-decoration: underline; }
 
 /* Feed */
 .content {
-  max-width: 44rem;
+  max-width: 60rem;
   margin: 0 auto;
   padding: 1.25rem;
 }
@@ -213,7 +213,7 @@ a:hover { text-decoration: underline; }
 
 /* Footer */
 .footer {
-  max-width: 44rem;
+  max-width: 60rem;
   margin: 2rem auto 0;
   padding: 1rem 1.25rem 2.5rem;
   border-top: 1px solid #e8e8e8;
