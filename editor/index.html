@@ -58,6 +58,23 @@
   .article pre code { background: none; padding: 0; }
   .article a { color: var(--accent); }
   .article img { max-width: 80%; height: auto; }
+  .article p:has(> img + img):not(:has(> :not(img))) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+  }
+  .article p:has(> img + img) img { max-width: 100%; }
+  .lb {
+    position: fixed; inset: 0; z-index: 100;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.85); padding: 2vw;
+  }
+  .lb.open { display: flex; }
+  .lb img {
+    max-width: 96vw; max-height: 96vh;
+    border-radius: 4px; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    cursor: zoom-out;
+  }
   .article hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
   .editor-wrap {
     flex: 1; min-height: 0; display: none;
@@ -117,12 +134,13 @@
       <select id="pick" aria-label="Choose post"><option value="">-- choose post --</option></select>
     </div>
     <div id="view" class="view"></div>
-    <div id="editorWrap" class="editor-wrap" hidden>
+    <div id="editorWrap" class="editor-wrap">
       <pre id="hl" aria-hidden="true"><code id="hlcode"></code></pre>
       <textarea id="content" placeholder="Write your post in Markdown…"></textarea>
     </div>
   </main>
 </div>
+<div id="lb" class="lb" role="dialog" aria-label="Enlarged image"><img id="lbImg" alt=""></div>
 <script src="markdown-it.min.js"></script>
 <script src="highlight.min.js"></script>
 <script>
@@ -269,6 +287,17 @@ function insertAtCursor(text) {
   ta.focus();
 }
 
+function insertImageMarkdown(md) {
+  const ta = $("#content");
+  const lines = ta.value.slice(0, ta.selectionStart).split("\n");
+  let i = lines.length - 1;
+  while (i >= 0 && !lines[i].trim()) i--;
+  const last = i >= 0 ? lines[i].trim() : "";
+  // Consecutive image pastes land on the next line (same paragraph) so the
+  // auto-grid kicks in; otherwise start a fresh paragraph.
+  insertAtCursor(last.startsWith("![") ? md + "\n" : "\n" + md + "\n");
+}
+
 async function uploadImage(file) {
   const EXT2TYPE = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
   const type = file.type || EXT2TYPE[(file.name.split(".").pop() || "").toLowerCase()];
@@ -278,7 +307,7 @@ async function uploadImage(file) {
     const res = await fetch("/api/images", { method: "POST", headers: { "Content-Type": type }, body: file });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || res.status);
-    insertAtCursor("\n" + data.markdown + "\n");
+    insertImageMarkdown(data.markdown);
     status("Image added \u2713 (pushes on Save)");
   } catch (e) { status(e.message, true); }
 }
@@ -313,6 +342,15 @@ $("#new").addEventListener("click", newPost);
 $("#edit").addEventListener("click", edit);
 $("#save").addEventListener("click", save);
 $("#del").addEventListener("click", remove);
+$("#view").addEventListener("click", (e) => {
+  const img = e.target.closest(".article img");
+  if (!img) return;
+  $("#lbImg").src = img.src;
+  $("#lbImg").alt = img.alt || "";
+  $("#lb").classList.add("open");
+});
+$("#lb").addEventListener("click", () => $("#lb").classList.remove("open"));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#lb").classList.remove("open"); });
 setMode("read");
 showEmpty();
 refresh().catch((e) => status(e.message, true));

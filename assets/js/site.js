@@ -122,8 +122,32 @@
     });
   });
 
-  function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) {
+  // Lightbox: click any post image to enlarge it (works on dynamically
+  // loaded cards via delegation).
+  var lightbox = document.createElement('div');
+  lightbox.className = 'lightbox';
+  lightbox.setAttribute('role', 'dialog');
+  lightbox.setAttribute('aria-label', 'Enlarged image');
+  var lightboxImg = document.createElement('img');
+  lightboxImg.alt = '';
+  lightbox.appendChild(lightboxImg);
+  document.body.appendChild(lightbox);
+
+  document.addEventListener('click', function (e) {
+    var img = e.target.closest('.card-body img');
+    if (!img) return;
+    lightboxImg.src = img.src;
+    lightboxImg.alt = img.alt || '';
+    lightbox.classList.add('open');
+  });
+  lightbox.addEventListener('click', function () {
+    lightbox.classList.remove('open');
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') lightbox.classList.remove('open');
+  });
+
+  function copyText(text) {    if (navigator.clipboard && window.isSecureContext) {
       return navigator.clipboard.writeText(text);
     }
     return new Promise(function (resolve, reject) {
