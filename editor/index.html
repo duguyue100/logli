@@ -60,8 +60,9 @@
   .article img { max-width: 80%; height: auto; }
   .article hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
   .editor-wrap {
-    flex: 1; min-height: 0; display: grid;
+    flex: 1; min-height: 0; display: none;
   }
+  .editor-wrap.active { display: grid; }
   .editor-wrap > * {
     grid-area: 1 / 1;
     width: 100%; max-width: 860px; justify-self: center;
@@ -149,7 +150,7 @@ function setMode(m) {
   mode = m;
   const editing = m === "edit";
   $("#view").hidden = editing;
-  $("#editorWrap").hidden = !editing;
+  $("#editorWrap").classList.toggle("active", editing);
   $("#edit").hidden = editing || !current;
   $("#save").hidden = !editing;
   $("#upload").hidden = !editing;
