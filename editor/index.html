@@ -57,7 +57,7 @@
   .article pre { background: #f6f6f6; padding: 0.9em 1.1em; border-radius: 6px; overflow-x: auto; }
   .article pre code { background: none; padding: 0; }
   .article a { color: var(--accent); }
-  .article img { max-width: 100%; }
+  .article img { max-width: 80%; height: auto; }
   .article hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
   textarea {
     flex: 1; border: none; resize: none; padding: 1.25rem 1.75rem;
@@ -80,8 +80,10 @@
     <button id="new" class="primary">New</button>
     <button id="edit" hidden>Edit</button>
     <button id="save" class="primary" hidden>Save</button>
+    <button id="upload" hidden>Upload image</button>
     <button id="del" class="danger" hidden>Delete</button>
     <span id="status"></span>
+    <input type="file" id="file" accept="image/*" hidden>
   </div>
 </header>
 <div class="layout">
@@ -123,14 +125,16 @@ function setMode(m) {
   $("#content").hidden = !editing;
   $("#edit").hidden = editing || !current;
   $("#save").hidden = !editing;
+  $("#upload").hidden = !editing;
   $("#del").hidden = !current;
   if (editing) $("#content").focus();
 }
 
 function renderRead(name, content) {
+  const src = content.replace(/\{\{\s*site\.baseurl\s*\}\}/g, "");
   $("#view").innerHTML =
     `<p class="post-name">${name}</p>` +
-    `<article class="article">${md.render(content)}</article>`;
+    `<article class="article">${md.render(src)}</article>`;
 }
 
 function showEmpty() {
@@ -218,12 +222,53 @@ async function remove() {
   } catch (e) { status(e.message, true); }
 }
 
+function insertAtCursor(text) {
+  const ta = $("#content");
+  const start = ta.selectionStart;
+  ta.value = ta.value.slice(0, start) + text + ta.value.slice(ta.selectionEnd);
+  const pos = start + text.length;
+  ta.setSelectionRange(pos, pos);
+  dirty = true;
+  ta.focus();
+}
+
+async function uploadImage(file) {
+  const EXT2TYPE = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
+  const type = file.type || EXT2TYPE[(file.name.split(".").pop() || "").toLowerCase()];
+  if (!type) { status("Unsupported image type", true); return; }
+  status("Uploading…");
+  try {
+    const res = await fetch("/api/images", { method: "POST", headers: { "Content-Type": type }, body: file });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.status);
+    insertAtCursor("\n" + data.markdown + "\n");
+    status("Image added \u2713 (pushes on Save)");
+  } catch (e) { status(e.message, true); }
+}
+
 $("#posts").addEventListener("click", (e) => {
   const a = e.target.closest("a");
   if (a) { e.preventDefault(); open(a.dataset.name); }
 });
 $("#pick").addEventListener("change", (e) => { if (e.target.value) open(e.target.value); });
 $("#content").addEventListener("input", () => { dirty = true; });
+$("#content").addEventListener("paste", (e) => {
+  const items = (e.clipboardData || {}).items || [];
+  for (const it of items) {
+    if (it.type && it.type.startsWith("image/")) {
+      e.preventDefault();
+      const file = it.getAsFile();
+      if (file) uploadImage(file);
+      return;
+    }
+  }
+});
+$("#upload").addEventListener("click", () => $("#file").click());
+$("#file").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (f) uploadImage(f);
+  e.target.value = "";
+});
 $("#new").addEventListener("click", newPost);
 $("#edit").addEventListener("click", edit);
 $("#save").addEventListener("click", save);

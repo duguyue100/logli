@@ -16,3 +16,7 @@ vendor/bundle/
 *.swp
 *~
 qzone
+
+# Python
+__pycache__/
+*.pyc

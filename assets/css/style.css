@@ -173,7 +173,7 @@ a:hover { text-decoration: underline; }
 .card-body h1 { font-size: 1.45rem; }
 .card-body h2 { font-size: 1.3rem; }
 .card-body h3 { font-size: 1.15rem; }
-.card-body img { max-width: 100%; height: auto; }
+.card-body img { max-width: 80%; height: auto; }
 .card-body blockquote {
   margin: 0.5rem 0;
   padding-left: 1rem;
