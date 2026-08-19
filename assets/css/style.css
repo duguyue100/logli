@@ -173,7 +173,9 @@ a:hover { text-decoration: underline; }
 .card-body h1 { font-size: 1.45rem; }
 .card-body h2 { font-size: 1.3rem; }
 .card-body h3 { font-size: 1.15rem; }
-.card-body img { max-width: 80%; height: auto; }
+.card-body img { max-width: 60%; height: auto; }
+.card-body p:has(> img:only-child) { text-align: center; }
+.card-body p:has(> img:only-child) img { display: inline-block; }
 .card-body p:has(> img + img):not(:has(> :not(img))) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

@@ -57,7 +57,9 @@
   .article pre { background: #f6f6f6; padding: 0.9em 1.1em; border-radius: 6px; overflow-x: auto; }
   .article pre code { background: none; padding: 0; }
   .article a { color: var(--accent); }
-  .article img { max-width: 80%; height: auto; }
+  .article img { max-width: 60%; height: auto; }
+  .article p:has(> img:only-child) { text-align: center; }
+  .article p:has(> img:only-child) img { display: inline-block; }
   .article p:has(> img + img):not(:has(> :not(img))) {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
