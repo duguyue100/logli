@@ -7,6 +7,7 @@
 <style>
   :root { --border:#e8e8e8; --accent:#1a4f8b; --muted:#666; }
   * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
   body {
     margin: 0; background: #fff; color: #222;
     font-family: Georgia, 'FangSong', 'STFangsong', serif;
@@ -20,7 +21,7 @@
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   header h1 { font-size: 1.35rem; margin: 0; margin-right: auto; font-weight: bold; color: #111; }
-  .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .actions { display: flex; align-items: center; gap: 8px; }
   button {
     font: inherit; padding: 7px 14px; border: 1px solid #ccc;
     border-radius: 6px; background: #fff; color: #222; cursor: pointer;
@@ -46,7 +47,14 @@
   aside li a.active { background: #e8eef7; border-left: 3px solid var(--accent); }
   main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: clip; }
   .toolbar { display: none; max-width: 100%; overflow: hidden; padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: system-ui, sans-serif; }
-  .toolbar select { width: 100%; max-width: 100%; min-width: 0; font: inherit; padding: 6px; }
+  .toolbar select {
+    width: 100%; max-width: 100%; min-width: 0;
+    -webkit-appearance: none; appearance: none;
+    font: inherit; padding: 6px 28px 6px 10px;
+    border: 1px solid #ccc; border-radius: 6px; background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+  }
   .view { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.5rem 1.75rem 3rem; }
   .post-name { color: var(--muted); font-size: 0.8rem; font-family: system-ui, sans-serif; margin: 0 0 0.5rem; }
   .article h1, .article h2, .article h3, .article h4 { line-height: 1.3; margin: 1.5em 0 0.6em; }
@@ -102,19 +110,23 @@
     .toolbar { display: block; }
     .view { padding: 1rem 1.1rem 2.5rem; }
     .editor-wrap > * { padding: 1rem 1.1rem; }
+    header { padding: 0.6rem 0.9rem; gap: 6px; }
+    #status { order: 2; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions { order: 3; width: 100%; margin-left: 0; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .actions button { flex: 0 0 auto; white-space: nowrap; padding: 6px 12px; }
   }
 </style>
 </head>
 <body>
 <header>
   <h1>Logli Editor</h1>
+  <span id="status"></span>
   <div class="actions">
     <button id="new" class="primary">New</button>
     <button id="edit" hidden>Edit</button>
     <button id="save" class="primary" hidden>Save</button>
     <button id="upload" hidden>Upload image</button>
     <button id="del" class="danger" hidden>Delete</button>
-    <span id="status"></span>
     <input type="file" id="file" accept="image/*" hidden>
   </div>
 </header>
