@@ -39,6 +39,15 @@ TZ = "Europe/Zurich"
 IMAGE_EXTS = {"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp"}
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
 DISPLAY_MAX = 1600
+# The slim image's mimetypes DB has no webp; browsers need the real type.
+MIME_FALLBACK = {"webp": "image/webp"}
+
+
+def content_type(name):
+    t = mimetypes.guess_type(name)[0]
+    if t:
+        return t
+    return MIME_FALLBACK.get(name.rsplit(".", 1)[-1], "application/octet-stream")
 
 LOCK = threading.Lock()
 
@@ -260,7 +269,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"error": "not found"}, 404)
         body = p.read_bytes()
         self.send_response(200)
-        self.send_header("Content-Type", mimetypes.guess_type(name)[0] or "application/octet-stream")
+        self.send_header("Content-Type", content_type(name))
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -274,7 +283,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"error": "not found"}, 404)
         body = p.read_bytes()
         self.send_response(200)
-        self.send_header("Content-Type", mimetypes.guess_type(name)[0] or "application/octet-stream")
+        self.send_header("Content-Type", content_type(name))
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
