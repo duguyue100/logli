@@ -7,7 +7,7 @@
 <style>
   :root { --border:#e8e8e8; --accent:#1a4f8b; --muted:#666; }
   * { box-sizing: border-box; }
-  html, body { overflow-x: clip; }
+  html { overflow-x: hidden; }
   body {
     margin: 0; background: #fff; color: #222;
     font-family: Georgia, 'FangSong', 'STFangsong', serif;
@@ -32,7 +32,7 @@
   button.danger { color: #c00; }
   #status { font-size: 13px; color: var(--muted); font-family: system-ui, sans-serif; min-width: 0; overflow-wrap: anywhere; }
   #status.error { color: #c00; }
-  .layout { display: flex; min-height: calc(100vh - 60px); }
+  .layout { display: flex; min-height: calc(100vh - 60px); contain: inline-size; }
   aside {
     width: 280px; border-right: 1px solid var(--border);
     overflow-y: auto; max-height: calc(100vh - 60px); position: sticky; top: 60px;
@@ -45,17 +45,32 @@
   }
   aside li a:hover { background: #f4f6fa; }
   aside li a.active { background: #e8eef7; border-left: 3px solid var(--accent); }
-  main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: clip; }
-  .toolbar { display: none; max-width: 100%; overflow: hidden; padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: system-ui, sans-serif; }
-  .toolbar select {
-    width: 100%; max-width: 100%; min-width: 0;
-    -webkit-appearance: none; appearance: none;
-    font: inherit; padding: 6px 28px 6px 10px;
-    border: 1px solid #ccc; border-radius: 6px; background-color: #fff;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 8px center;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: clip; contain: inline-size; }
+  .toolbar { position: relative; display: none; max-width: 100%; padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: system-ui, sans-serif; }
+  #pick {
+    width: min(100%, 280px); max-width: 100%; min-width: 0;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; background: #fff;
+    font: inherit; color: #222; cursor: pointer; text-align: left;
   }
+  #pick:hover { background: #f4f6fa; }
+  #pick .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pick .chevron { flex: 0 0 auto; color: #666; font-size: 0.7rem; }
+  #pickList {
+    position: absolute; top: calc(100% + 4px); left: 0; right: auto; z-index: 50;
+    width: min(100%, 280px);
+    list-style: none; margin: 0; padding: 4px;
+    background: #fff; border: 1px solid #ccc; border-radius: 6px;
+    max-height: 60vh; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  }
+  #pickList[hidden] { display: none; }
+  #pickList li a {
+    display: block; padding: 8px 10px; color: #222; text-decoration: none;
+    border-radius: 4px; font-size: 13px; word-break: break-all;
+  }
+  #pickList li a:hover { background: #f4f6fa; }
+  #pickList li a.active { background: #e8eef7; }
   .view { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.5rem 1.75rem 3rem; }
   .post-name { color: var(--muted); font-size: 0.8rem; font-family: system-ui, sans-serif; margin: 0 0 0.5rem; }
   .article h1, .article h2, .article h3, .article h4 { line-height: 1.3; margin: 1.5em 0 0.6em; }
@@ -89,28 +104,36 @@
   .article hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
   .editor-wrap {
     flex: 1; min-height: 0; display: none;
+    contain: inline-size;
   }
-  .editor-wrap.active { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .editor-wrap.active { display: flex; flex-direction: column; }
   .editor-wrap > * {
-    grid-area: 1 / 1;
-    width: 100%; max-width: 860px; justify-self: center;
+    flex: 1 1 auto; min-height: 0;
+    width: 100%; max-width: 860px; margin: 0 auto;
     min-width: 0;
-    margin: 0; padding: 1.25rem 1.75rem;
+    padding: 1.25rem 1.75rem;
     font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-    white-space: pre-wrap; overflow-wrap: break-word;
+    white-space: pre-wrap; overflow-wrap: anywhere;
     tab-size: 4; border: 0; outline: none; overflow: auto;
   }
   .editor-wrap textarea {
-    background: transparent; color: #333;
-    resize: none;
+    background: #fff; color: #333;
+    border: 1px solid #ddd; border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    resize: none; overflow-x: hidden; overflow-y: auto;
   }
+  .editor-wrap textarea:focus { outline: none; border-color: var(--accent); }
   .editor-wrap textarea::placeholder { color: #999; opacity: 1; }
   .empty { color: var(--muted); text-align: center; padding-top: 20vh; font-family: system-ui, sans-serif; }
   @media (max-width: 640px) {
+    body { width: 100%; overflow-x: hidden; }
+    html { overflow-x: hidden; }
+    .layout, main { width: 100%; }
+    header { position: static; }
     aside { display: none; }
     .toolbar { display: block; }
     .view { padding: 1rem 1.1rem 2.5rem; }
-    .editor-wrap > * { padding: 1rem 1.1rem; }
+    .editor-wrap > * { padding: 1rem 1.1rem; width: calc(100% - 2rem); max-width: calc(100% - 2rem); }
     header { padding: 0.6rem 0.9rem; gap: 6px; }
     #status { order: 2; width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .actions { order: 3; width: 100%; margin-left: 0; flex-wrap: wrap; gap: 6px; }
@@ -135,7 +158,10 @@
   <aside><ul id="posts"></ul></aside>
   <main>
     <div class="toolbar">
-      <select id="pick" aria-label="Choose post"><option value="">-- choose post --</option></select>
+      <button type="button" id="pick" aria-haspopup="listbox" aria-expanded="false">
+        <span class="label">Choose a post…</span><span class="chevron">&#9662;</span>
+      </button>
+      <ul id="pickList" role="listbox" hidden></ul>
     </div>
     <div id="view" class="view"></div>
     <div id="editorWrap" class="editor-wrap">
@@ -196,14 +222,19 @@ function shortName(p) {
   return p.length > 22 ? p.slice(0, 19) + "\u2026" : p;
 }
 
+function pickLabel() {
+  $("#pick .label").textContent = current ? shortName(current) : "Choose a post…";
+}
+
 async function refresh() {
   const { posts } = await api("/api/posts");
   $("#posts").innerHTML = posts.map((p) =>
     `<li><a href="#" data-name="${p}" class="${p === current ? "active" : ""}">${p}</a></li>`
   ).join("");
-  $("#pick").innerHTML =
-    '<option value="">-- choose post --</option>' +
-    posts.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${shortName(p)}</option>`).join("");
+  $("#pickList").innerHTML = posts.map((p) =>
+    `<li><a href="#" data-name="${p}" class="${p === current ? "active" : ""}">${shortName(p)}</a></li>`
+  ).join("");
+  pickLabel();
 }
 
 function canLeave() {
@@ -316,7 +347,21 @@ $("#posts").addEventListener("click", (e) => {
   const a = e.target.closest("a");
   if (a) { e.preventDefault(); open(a.dataset.name); }
 });
-$("#pick").addEventListener("change", (e) => { if (e.target.value) open(e.target.value); });
+const pickList = $("#pickList");
+function togglePick(show) {
+  pickList.hidden = !show;
+  $("#pick").setAttribute("aria-expanded", show ? "true" : "false");
+}
+$("#pick").addEventListener("click", (e) => { e.stopPropagation(); togglePick(pickList.hidden); });
+pickList.addEventListener("click", (e) => {
+  const a = e.target.closest("a");
+  if (!a) return;
+  e.preventDefault();
+  togglePick(false);
+  open(a.dataset.name);
+});
+document.addEventListener("click", (e) => { if (!e.target.closest(".toolbar")) togglePick(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") togglePick(false); });
 $("#content").addEventListener("input", () => { dirty = true; });
 $("#content").addEventListener("paste", (e) => {
   const items = (e.clipboardData || {}).items || [];
