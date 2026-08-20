@@ -136,7 +136,8 @@
   document.addEventListener('click', function (e) {
     var img = e.target.closest('.card-body img');
     if (!img) return;
-    lightboxImg.src = img.src;
+    // Posts reference the compressed _d.webp; show the full-res original.
+    lightboxImg.src = img.src.replace(/_d\.webp$/, '_f.webp');
     lightboxImg.alt = img.alt || '';
     lightbox.classList.add('open');
   });

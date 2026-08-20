@@ -18,9 +18,15 @@ import threading
 import time
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
+
+try:
+    from PIL import Image, ImageOps
+except ImportError:
+    Image = None
 
 HERE = Path(__file__).resolve().parent
 REPO_DIR = Path(os.environ.get("REPO_DIR", "/repo"))
@@ -32,6 +38,7 @@ EDITOR_GID = int(os.environ.get("EDITOR_GID", "20"))
 TZ = "Europe/Zurich"
 IMAGE_EXTS = {"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp"}
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
+DISPLAY_MAX = 1600
 
 LOCK = threading.Lock()
 
@@ -116,6 +123,39 @@ def write_image(repo, name, data):
     p.write_bytes(data)
 
 
+def process_image(data, base=None):
+    """Strip metadata and return {filename: bytes} to write.
+
+    JPEG/PNG/WebP -> <base>_d.webp (display, <=1600px) + <base>_f.webp (full).
+    GIF -> single <base>.gif (metadata stripped, animation preserved).
+    Re-encoding drops EXIF/metadata; orientation is applied first so photos
+    aren't left rotated once the EXIF tag is gone.
+    """
+    if Image is None:
+        raise GitError("Pillow not installed")
+    base = base or f"{int(time.time() * 1000)}-{secrets.token_hex(3)}"
+    img = Image.open(BytesIO(data))
+    img.load()
+    img = ImageOps.exif_transpose(img)
+    fmt = (img.format or "").upper()
+    if fmt == "GIF":
+        buf = BytesIO()
+        img.save(buf, "GIF", save_all=True, optimize=True)
+        return {f"{base}.gif": buf.getvalue()}
+    full = BytesIO()
+    img.save(full, "WEBP", quality=90)
+    disp = img
+    if img.width > DISPLAY_MAX:
+        h = int(img.height * DISPLAY_MAX / img.width)
+        disp = img.resize((DISPLAY_MAX, h), Image.LANCZOS)
+    buf = BytesIO()
+    disp.save(buf, "WEBP", quality=80)
+    return {
+        f"{base}_d.webp": buf.getvalue(),
+        f"{base}_f.webp": full.getvalue(),
+    }
+
+
 def orphan_images(repo):
     img_dir = repo / "assets" / "images"
     if not img_dir.is_dir():
@@ -128,10 +168,47 @@ def orphan_images(repo):
                 r"assets/images/([\w.-]+\.(?:png|jpe?g|gif|webp))",
                 f.read_text(encoding="utf-8", errors="replace"),
             ))
-    return [
-        f.name for f in img_dir.iterdir()
-        if re.fullmatch(r"[\w.-]+\.(?:png|jpe?g|gif|webp)", f.name) and f.name not in used
+    orphans = []
+    for f in img_dir.iterdir():
+        name = f.name
+        if not re.fullmatch(r"[\w.-]+\.(?:png|jpe?g|gif|webp)", name):
+            continue
+        if name in used:
+            continue
+        # sibling rule: _f.webp (lightbox full) is owned by its _d.webp display
+        if name.endswith("_d.webp") and name[:-7] + "_f.webp" in used:
+            continue
+        if name.endswith("_f.webp") and name[:-7] + "_d.webp" in used:
+            continue
+        orphans.append(name)
+    return orphans
+
+
+def migrate_images(repo):
+    """One-shot: convert old single-file uploads to _d/_f pairs and rewrite
+    every post reference to point at the _d.webp display version."""
+    img_dir = repo / "assets" / "images"
+    if not img_dir.is_dir():
+        return
+    old = [
+        f for f in img_dir.iterdir()
+        if re.fullmatch(r"[\w.-]+\.(?:png|jpe?g|gif|webp)", f.name)
+        and not (f.name.endswith("_d.webp") or f.name.endswith("_f.webp"))
     ]
+    for f in old:
+        outputs = process_image(f.read_bytes(), base=f.stem)
+        f.unlink()
+        for out_name, blob in outputs.items():
+            write_image(repo, out_name, blob)
+        new_name = next((n for n in outputs if n.endswith("_d.webp")), list(outputs)[0])
+        old_ref = f"assets/images/{f.name}"
+        new_ref = f"assets/images/{new_name}"
+        if old_ref == new_ref:
+            continue
+        for p in (repo / "_posts").glob("*.md"):
+            text = p.read_text(encoding="utf-8")
+            if old_ref in text:
+                p.write_text(text.replace(old_ref, new_ref), encoding="utf-8")
 
 
 def gc_orphan_images(repo):
@@ -256,12 +333,19 @@ class Handler(BaseHTTPRequestHandler):
             if n > MAX_IMAGE_BYTES:
                 return self._send_json({"error": "image too large (max 15MB)"}, 413)
             data = self.rfile.read(n)
-            name = f"{int(time.time() * 1000)}-{secrets.token_hex(3)}.{ext}"
-            # Stage as an untracked file: no git_flow, no push. The next post
-            # save picks it up via `git add -A` and ships it in that commit.
+            try:
+                outputs = process_image(data)
+            except GitError as e:
+                return self._send_json({"error": str(e)}, 500)
+            except Exception as e:
+                return self._send_json({"error": f"could not process image: {e}"}, 400)
+            # Stage as untracked files: no git_flow, no push. The next post
+            # save picks them up via `git add -A` and ships them in that commit.
             with LOCK:
-                write_image(REPO_DIR, name, data)
+                for fname, blob in outputs.items():
+                    write_image(REPO_DIR, fname, blob)
                 fix_owner(REPO_DIR)
+            name = next((n for n in outputs if n.endswith("_d.webp")), list(outputs)[0])
             self._send_json({"name": name,
                              "markdown": f"![image]({{{{ site.baseurl }}}}/assets/images/{name})"})
         else:
@@ -317,30 +401,27 @@ def selftest():
     assert not post_path(work, name).exists()
 
     img_dir.mkdir(parents=True, exist_ok=True)
-    iname = f"{int(time.time() * 1000)}-{secrets.token_hex(3)}.png"
-    blob = b"\x89PNG\r\n\x1a\n" + b"fakedata" * 10
-    write_image(work, iname, blob)  # staged: written but NOT committed
+    base1 = f"{int(time.time() * 1000)}-{secrets.token_hex(3)}"
+    d1, f1 = f"{base1}_d.webp", f"{base1}_f.webp"
+    write_image(work, d1, b"dd")  # staged display
+    write_image(work, f1, b"ff")  # staged full (lightbox original)
     status_out = run_git(work, "status", "--porcelain", "--untracked-files=all")
-    assert f"?? assets/images/{iname}" in status_out  # still untracked
+    assert f"?? assets/images/{d1}" in status_out and f"?? assets/images/{f1}" in status_out
 
     p2 = new_post_filename()
     git_flow(work, lambda: write_post(
-        work, p2, f"see ![image]({{{{ site.baseurl }}}}/assets/images/{iname})"),
+        work, p2, f"see ![image]({{{{ site.baseurl }}}}/assets/images/{d1})"),
         f"post: {p2}", gc=True)
-    assert (img_dir / iname).exists()
+    assert (img_dir / d1).exists() and (img_dir / f1).exists()  # _f kept while _d referenced
 
     git_flow(work, lambda: delete_post(work, p2), f"delete: {p2}", gc=True)
-    assert not (img_dir / iname).exists()
+    assert not (img_dir / d1).exists() and not (img_dir / f1).exists()  # both GC'd
 
-    iname2 = f"{int(time.time() * 1000)}-{secrets.token_hex(3)}.png"
-    write_image(work, iname2, b"xx")  # staged, never referenced
+    d2 = f"{int(time.time() * 1000)}-{secrets.token_hex(3)}_d.webp"
+    write_image(work, d2, b"xx")  # staged, never referenced
     p3 = new_post_filename()
     git_flow(work, lambda: write_post(work, p3, "no images here"), f"post: {p3}", gc=True)
-    assert not (img_dir / iname2).exists()
-
-    log = run_git(work, "log", "--format=%s", "origin/main")
-    assert log.count("image:") == 0 and log.count("post:") == 3
-    assert log.count("edit:") == 1 and log.count("delete:") == 2
+    assert not (img_dir / d2).exists()
 
     stray = img_dir / "stray.png"
     stray.write_bytes(b"zzz")  # untracked file dropped in, survives sync
@@ -348,14 +429,58 @@ def selftest():
     git_flow(work, lambda: write_post(work, p4, "cleanup"), f"post: {p4}", gc=True)
     assert not stray.exists()  # GC removed it without a git rm 128 failure
 
+    if Image is not None:
+        src = Image.new("RGB", (2000, 1000), "red")
+        exif = Image.Exif()
+        exif[274] = 1  # Orientation (normal) - just to exercise EXIF stripping
+        buf = BytesIO()
+        src.save(buf, "JPEG", exif=exif.tobytes())
+        outs = process_image(buf.getvalue())
+        dname = next(n for n in outs if n.endswith("_d.webp"))
+        fname = next(n for n in outs if n.endswith("_f.webp"))
+        with Image.open(BytesIO(outs[fname])) as full_img:
+            assert full_img.width == 2000 and full_img.height == 1000
+            assert not full_img.getexif()  # EXIF stripped
+        with Image.open(BytesIO(outs[dname])) as disp_img:
+            assert disp_img.width == DISPLAY_MAX and disp_img.height == 800
+        assert len(outs[dname]) < len(outs[fname])
+
+        old = f"{int(time.time() * 1000)}-{secrets.token_hex(3)}.jpg"
+        write_image(work, old, buf.getvalue())  # old single-file upload
+        p5 = new_post_filename()
+        git_flow(work, lambda: write_post(
+            work, p5, f"![o]({{{{ site.baseurl }}}}/assets/images/{old})"),
+            f"post: {p5}", gc=True)
+        assert (img_dir / old).exists()
+        git_flow(work, lambda: migrate_images(work), "migrate images", gc=True)
+        assert not (img_dir / old).exists()
+        new_ref = f"assets/images/{old[:-4]}_d.webp"
+        assert read_post(work, p5) == f"![o]({{{{ site.baseurl }}}}/{new_ref})"
+        assert (img_dir / f"{old[:-4]}_d.webp").exists()
+        assert (img_dir / f"{old[:-4]}_f.webp").exists()
+
+    log = run_git(work, "log", "--format=%s", "origin/main")
+    assert log.count("image:") == 0
+    assert log.count("edit:") == 1 and log.count("delete:") == 2
+    if Image is not None:
+        assert log.count("post:") == 5 and log.count("migrate images") == 1
+    else:
+        assert log.count("post:") == 4
+
     run_git(base, "clone", remote, verify)
     assert run_git(verify, "rev-parse", "HEAD") == run_git(work, "rev-parse", "origin/main")
     assert not post_path(verify, name).exists()
     assert read_post(verify, p3) == "no images here"
     v_img = verify / "assets" / "images"
-    assert not v_img.is_dir() or not any(v_img.glob("*"))
+    if Image is not None:
+        assert read_post(verify, p5) == f"![o]({{{{ site.baseurl }}}}/{new_ref})"
+        assert (v_img / f"{old[:-4]}_d.webp").exists()
+        assert (v_img / f"{old[:-4]}_f.webp").exists()
+        assert orphan_images(verify) == []
+    else:
+        assert not v_img.is_dir() or not any(v_img.glob("*"))
     added = run_git(verify, "log", "--all", "--diff-filter=A", "--format=%s",
-                    "--", f"assets/images/{iname}")
+                    "--", f"assets/images/{d1}")
     assert added == f"post: {p2}"  # image shipped inside the post commit
 
 
@@ -363,6 +488,11 @@ def main():
     if "--selftest" in sys.argv:
         selftest()
         print("selftest: OK")
+        return
+    if "--migrate-images" in sys.argv:
+        git_flow(REPO_DIR, lambda: migrate_images(REPO_DIR),
+                 "migrate images: display+full split", gc=True)
+        print("migrated")
         return
     httpd = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"Logli editor on http://0.0.0.0:{PORT} (repo: {REPO_DIR})", flush=True)

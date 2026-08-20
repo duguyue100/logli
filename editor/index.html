@@ -347,7 +347,7 @@ $("#del").addEventListener("click", remove);
 $("#view").addEventListener("click", (e) => {
   const img = e.target.closest(".article img");
   if (!img) return;
-  $("#lbImg").src = img.src;
+  $("#lbImg").src = img.src.replace(/_d\.webp$/, "_f.webp");
   $("#lbImg").alt = img.alt || "";
   $("#lb").classList.add("open");
 });
