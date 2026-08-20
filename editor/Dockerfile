@@ -3,7 +3,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git openssh-cli
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir Pillow
 WORKDIR /app
-COPY server.py index.html markdown-it.min.js highlight.min.js ./
+COPY server.py index.html markdown-it.min.js ./
 ENV PORT=8000 REPO_DIR=/repo GIT_NAME=logli-editor GIT_EMAIL=logli-editor@localhost \
     GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"
 EXPOSE 8000

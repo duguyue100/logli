@@ -44,7 +44,7 @@
   }
   aside li a:hover { background: #f4f6fa; }
   aside li a.active { background: #e8eef7; border-left: 3px solid var(--accent); }
-  main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: clip; }
   .toolbar { display: none; max-width: 100%; overflow: hidden; padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: system-ui, sans-serif; }
   .toolbar select { width: 100%; max-width: 100%; min-width: 0; font: inherit; padding: 6px; }
   .view { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.5rem 1.75rem 3rem; }
@@ -88,26 +88,14 @@
     min-width: 0;
     margin: 0; padding: 1.25rem 1.75rem;
     font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-    white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;
+    white-space: pre-wrap;
     tab-size: 4; border: 0; outline: none; overflow: auto;
   }
   .editor-wrap textarea {
-    background: transparent; color: transparent; caret-color: #222;
+    background: transparent; color: #333;
     resize: none;
   }
   .editor-wrap textarea::placeholder { color: #999; opacity: 1; }
-  .editor-wrap textarea::selection { color: #fff; background: #4078f2; }
-  .editor-wrap pre { pointer-events: none; }
-  .hljs { background: transparent; color: #333; padding: 0; }
-  .hljs-section, .hljs-title, .hljs-keyword, .hljs-selector-tag, .hljs-meta,
-  .hljs-bullet, .hljs-link_label, .hljs-regexp { color: #a626a4; }
-  .hljs-section, .hljs-strong { font-weight: 700; }
-  .hljs-string, .hljs-number, .hljs-literal, .hljs-symbol,
-  .hljs-built_in, .hljs-type { color: #c18401; }
-  .hljs-attr, .hljs-attribute, .hljs-variable, .hljs-template-variable { color: #986801; }
-  .hljs-code, .hljs-link_url { color: #4078f2; text-decoration: underline; }
-  .hljs-comment, .hljs-quote { color: #888; font-style: italic; }
-  .hljs-emphasis { color: #222; font-style: italic; }
   .empty { color: var(--muted); text-align: center; padding-top: 20vh; font-family: system-ui, sans-serif; }
   @media (max-width: 640px) {
     aside { display: none; }
@@ -138,14 +126,12 @@
     </div>
     <div id="view" class="view"></div>
     <div id="editorWrap" class="editor-wrap">
-      <pre id="hl" aria-hidden="true"><code id="hlcode"></code></pre>
       <textarea id="content" placeholder="Write your post in Markdown…"></textarea>
     </div>
   </main>
 </div>
 <div id="lb" class="lb" role="dialog" aria-label="Enlarged image"><img id="lbImg" alt=""></div>
 <script src="markdown-it.min.js"></script>
-<script src="highlight.min.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const md = window.markdownit({ html: false, linkify: true });
@@ -176,25 +162,7 @@ function setMode(m) {
   $("#save").hidden = !editing;
   $("#upload").hidden = !editing;
   $("#del").hidden = !current;
-  if (editing) { highlight(); $("#content").focus(); }
-}
-
-function highlight() {
-  const ta = $("#content");
-  const code = $("#hlcode");
-  const html = window.hljs.highlight(ta.value, { language: "markdown" }).value;
-  code.innerHTML = html + "\n";
-  code.parentElement.scrollTop = ta.scrollTop;
-}
-
-// Batch highlighting off the input event path (runs at most once per frame).
-// Reflowing the highlight layer synchronously inside "input" makes iOS lag
-// the textarea's glyph repaint behind the caret (a growing blank gap).
-let hlPend = false;
-function scheduleHighlight() {
-  if (hlPend) return;
-  hlPend = true;
-  requestAnimationFrame(() => { hlPend = false; highlight(); });
+  if (editing) { $("#content").focus(); }
 }
 
 function renderRead(name, content) {
@@ -296,7 +264,6 @@ function insertAtCursor(text) {
   const pos = start + text.length;
   ta.setSelectionRange(pos, pos);
   dirty = true;
-  scheduleHighlight();
   ta.focus();
 }
 
@@ -330,10 +297,7 @@ $("#posts").addEventListener("click", (e) => {
   if (a) { e.preventDefault(); open(a.dataset.name); }
 });
 $("#pick").addEventListener("change", (e) => { if (e.target.value) open(e.target.value); });
-$("#content").addEventListener("input", () => { dirty = true; scheduleHighlight(); });
-$("#content").addEventListener("scroll", () => {
-  $("#hlcode").parentElement.scrollTop = $("#content").scrollTop;
-});
+$("#content").addEventListener("input", () => { dirty = true; });
 $("#content").addEventListener("paste", (e) => {
   const items = (e.clipboardData || {}).items || [];
   for (const it of items) {
