@@ -54,6 +54,7 @@
     border: 1px solid #ccc; border-radius: 6px; background-color: #fff;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 8px center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .view { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.5rem 1.75rem 3rem; }
   .post-name { color: var(--muted); font-size: 0.8rem; font-family: system-ui, sans-serif; margin: 0 0 0.5rem; }
@@ -188,6 +189,13 @@ function showEmpty() {
   $("#view").innerHTML = `<div class="empty">Select a post, or click <strong>New</strong> to write one.</div>`;
 }
 
+// iOS sizes a native <select> to its longest option text, ignoring CSS
+// width. Truncate the labels so the control can never exceed the screen;
+// the full name is still the option's value.
+function shortName(p) {
+  return p.length > 22 ? p.slice(0, 19) + "\u2026" : p;
+}
+
 async function refresh() {
   const { posts } = await api("/api/posts");
   $("#posts").innerHTML = posts.map((p) =>
@@ -195,7 +203,7 @@ async function refresh() {
   ).join("");
   $("#pick").innerHTML =
     '<option value="">-- choose post --</option>' +
-    posts.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${p}</option>`).join("");
+    posts.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${shortName(p)}</option>`).join("");
 }
 
 function canLeave() {
