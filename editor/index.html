@@ -104,7 +104,7 @@
   .article hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
   .editor-wrap {
     flex: 1; min-height: 0; display: none;
-    contain: inline-size;
+    contain: inline-size; overflow: hidden;
   }
   .editor-wrap.active { display: flex; flex-direction: column; }
   .editor-wrap > * {
@@ -112,8 +112,8 @@
     width: 100%; max-width: 860px; margin: 0 auto;
     min-width: 0;
     padding: 1.25rem 1.75rem;
-    font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-    white-space: pre-wrap; overflow-wrap: anywhere;
+    font: 16px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all;
     tab-size: 4; border: 0; outline: none; overflow: auto;
   }
   .editor-wrap textarea {
