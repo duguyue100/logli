@@ -46,7 +46,12 @@
   }
 
   // Fetch page N and append its cards; resolves when appended.
+  var loadedPages = {};   // page numbers already appended (idempotent)
+  var loadingAll = false; // only one load-all chain at a time
+
   function loadPage(n) {
+    if (loadedPages[n]) return Promise.resolve();
+    loadedPages[n] = true;
     return fetch(base + '/page' + n + '/').then(function (r) {
       return r.text();
     }).then(function (html) {
@@ -58,15 +63,20 @@
       applyFilter();
       currentPage = n;
       updateButtons();
+    }).catch(function (err) {
+      delete loadedPages[n];
+      throw err;
     });
   }
 
   function loadAllPages() {
+    if (loadingAll) return;
+    loadingAll = true;
     var n = currentPage;
     (function next() {
       n++;
-      if (n > totalPages) return;
-      loadPage(n).then(next);
+      if (n > totalPages) { loadingAll = false; return; }
+      loadPage(n).then(next, function () { loadingAll = false; });
     })();
   }
 
