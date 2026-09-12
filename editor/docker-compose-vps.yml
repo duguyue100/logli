@@ -14,24 +14,10 @@ services:
       - GIT_EMAIL=${GIT_EMAIL:-duguyue100@users.noreply.github.com}
       - EDITOR_UID=${EDITOR_UID:-0}
       - EDITOR_GID=${EDITOR_GID:-0}
+    networks:
+      - caddy
     restart: unless-stopped
 
+networks:
   caddy:
-    image: caddy:2-alpine
-    container_name: logli-caddy
-    env_file:
-      - .env
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - editor
-    restart: unless-stopped
-
-volumes:
-  caddy_data:
-  caddy_config:
+    external: true
