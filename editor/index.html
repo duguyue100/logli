@@ -179,8 +179,12 @@ let raw = "";
 let mode = "read";
 let dirty = false;
 
+// Base path the editor is served under, e.g. "/logli-editor" behind a reverse
+// proxy, or "" when served at the root (local docker-compose.yml on :6006).
+const BASE = location.pathname.replace(/\/$/, "");
+
 async function api(path, opts = {}) {
-  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const res = await fetch(BASE + path, { headers: { "Content-Type": "application/json" }, ...opts });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || res.status);
   return data;
@@ -205,7 +209,7 @@ function setMode(m) {
 }
 
 function renderRead(name, content) {
-  const src = content.replace(/\{\{\s*site\.baseurl\s*\}\}/g, "");
+  const src = content.replace(/\{\{\s*site\.baseurl\s*\}\}/g, BASE);
   $("#view").innerHTML =
     `<p class="post-name">${name}</p>` +
     `<article class="article">${md.render(src)}</article>`;
@@ -335,7 +339,7 @@ async function uploadImage(file) {
   if (!type) { status("Unsupported image type", true); return; }
   status("Uploading…");
   try {
-    const res = await fetch("/api/images", { method: "POST", headers: { "Content-Type": type }, body: file });
+    const res = await fetch(BASE + "/api/images", { method: "POST", headers: { "Content-Type": type }, body: file });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || res.status);
     insertImageMarkdown(data.markdown);

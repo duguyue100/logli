@@ -1,21 +1,17 @@
 {$EDITOR_DOMAIN} {
 	encode gzip
 
-	basic_auth {
-		{$EDITOR_USER} {$EDITOR_PASSWORD_HASH}
-	}
-
 	redir /logli-editor /logli-editor/ 308
 
 	handle_path /logli-editor/* {
+		basic_auth {
+			{$EDITOR_USER} {$EDITOR_PASSWORD_HASH}
+		}
 		reverse_proxy editor:8000
 	}
 
-	# index.html uses root-absolute URLs; keep these at root.
-	handle /api/* {
-		reverse_proxy editor:8000
-	}
-	handle /assets/images/* {
-		reverse_proxy editor:8000
+	# Other services on this domain add their own handle blocks above this.
+	handle {
+		respond 404
 	}
 }
