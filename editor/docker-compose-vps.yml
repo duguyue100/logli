@@ -1,0 +1,35 @@
+services:
+  editor:
+    build: .
+    container_name: logli-editor
+    expose:
+      - "8000"
+    volumes:
+      - ..:/repo
+      - ${HOME}/.ssh:/root/.ssh:ro
+    environment:
+      - PORT=8000
+      - REPO_DIR=/repo
+      - GIT_NAME=${GIT_NAME:-duguyue100}
+      - GIT_EMAIL=${GIT_EMAIL:-duguyue100@users.noreply.github.com}
+      - EDITOR_UID=${EDITOR_UID:-0}
+      - EDITOR_GID=${EDITOR_GID:-0}
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: logli-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - editor
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

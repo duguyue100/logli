@@ -20,3 +20,6 @@ qzone
 # Python
 __pycache__/
 *.pyc
+
+# Editor deployment secrets
+editor/.env
